@@ -46,7 +46,7 @@ def get_clip_list(clip_str: str) -> list[tuple[int, int]]:
     
     clip_list = []
     time_pattern = "\d{1,2}|\d{1,2}:\d{1,2}|\d{1,2}:\d{1,2}:\d{1,2}"
-    interval_list = re.findall(rf"\(({time_pattern}) ?, ?({time_pattern})\)", clip_str)
+    interval_list = re.findall(rf"\(({time_pattern}) ?,? ?({time_pattern})\)", clip_str)
     for interval in interval_list:
         start, end = to_seconds(interval[0]), to_seconds(interval[1])
         # handle end < start or not?
