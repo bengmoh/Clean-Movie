@@ -9,27 +9,34 @@ def main() -> None:
     root.withdraw()
     input_file_path = filedialog.askopenfilename(initialdir=".", title="select the movie", filetypes=(("all files", "*.*"), ("mp4 files", "*.mp4")))
     vid = VideoFileClip(input_file_path)
+
+    
     bad_clips_input = input(
         "Enter the list of clips you want to remove. \
-        \nFor example: if you enter [(1:15, 2:00), (1:30:22, 1:31:24)], then\
-        \nI'll remove clips (1:15 to 2:00) and (1:30:22 to 1:31:24). Please\
-        \nenter the clips in order and in a correct format as shown in the example:\n"
+        \nMake sure the clips are ordered and in a correct format: \
+        \n-> Example of input: (0:40, 1:50) (1:30:00, 1:40:00) \
+        \n->"
         )
-    bad_clips = get_clip_list(bad_clips_input)
     
+    bad_clips = get_clip_list(bad_clips_input)
     good_clips = cutout(bad_clips, vid)
     new_video = concatenate_videoclips(good_clips)
     
     output_file_path = input_file_path[:len(input_file_path)-4] + " (CleanMovie)"  + input_file_path[len(input_file_path)-4:]
     new_video.write_videofile(output_file_path, codec="libx264", audio_codec="aac")
+    vid.close()    
     # if automatically_openp
     #   python subprocess that opens the vid
-    vid.close()
-# [(0:33, 0:40), (8:41, 9:46)]
 
 def get_clip_list(clip_str: str) -> list[tuple[int, int]]:
-    """returns list of intervals in seconds given a string list
-    of clips in any time format"""
+    """
+    returns list of clips (start[int], end[int]) in seconds given a string
+    of clips, each clip as (start, end).
+    This is to convert user input to actual list of clips
+    Example:
+    "(0:50, 1:0) (1:20, 2:03)" -> [(50, 60), (80, 123)]
+    """
+    
     def to_seconds(time: str) -> int:
         """converts time from string format to seconds (int)"""
         column_count = time.count(":")
@@ -54,7 +61,11 @@ def get_clip_list(clip_str: str) -> list[tuple[int, int]]:
     return clip_list
 
     
-def cutout(bad_clips_intervals: list[tuple[int, int]], vid):    
+def cutout(bad_clips_intervals: list[tuple[int, int]], vid):
+    """
+    takes list of bad clips intervals,
+    returns the list of the good clips
+    """
     good_clips_intervals = complement(bad_clips_intervals, vid.end)
     good_clips = []
     for good_clip_interval in good_clips_intervals:
@@ -64,8 +75,10 @@ def cutout(bad_clips_intervals: list[tuple[int, int]], vid):
 
 
 def complement(bad_clips_intervals: list[tuple[int, int]], vid_end: int):
-    """takes vid end time and list of bad clips
-    returns all clips of vid cutting out bad clips"""
+    """
+    takes vid end time and list of bad clips intervals
+    returns the good clips intevals by complementing the bad ones'
+    """
     assert bad_clips_intervals, "there must be at least one clip to remove"
     good_clip_intervals = [(0, bad_clips_intervals[0][0])] if bad_clips_intervals[0][0] != 0 else []
     for i in range(len(bad_clips_intervals) - 1):
