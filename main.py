@@ -20,8 +20,9 @@ def main() -> None:
     if any(char.isalpha() for char in bad_clips_input):
         bad_clips_input = decode(bad_clips_input)
         
-    bad_clips = get_clip_list(bad_clips_input)
-    good_clips = cutout(bad_clips, vid)
+    bad_clips_intervals = get_clip_list(bad_clips_input)
+    good_clips_intervals = complement(bad_clips_intervals, end=vid.end)
+    good_clips = merge(good_clips_intervals, vid)
         
     new_video = concatenate_videoclips(good_clips)
     
@@ -64,33 +65,35 @@ def get_clip_list(clip_str: str) -> list[tuple[int, int]]:
     return clip_list
 
     
-def cutout(bad_clips_intervals: list[tuple[int, int]], vid):
+def merge(clips_intervals: list[tuple[int, int]], vid):
     """
     takes list of bad clips intervals,
     returns the list of the good clips
     """
-    good_clips_intervals = complement(bad_clips_intervals, vid.end)
-    good_clips = []
-    for good_clip_interval in good_clips_intervals:
-        start, end = good_clip_interval
-        good_clips.append(vid.subclip(start, end))
-    return good_clips
+    clips = []
+    for clip_interval in clips_intervals:
+        start, end = clip_interval
+        clips.append(vid.subclip(start, end))
+    return clips
 
 
-def complement(bad_clips_intervals: list[tuple[int, int]], vid_end: int):
+def complement(clips_intervals: list[tuple[int, int]], end: int):
     """
     takes vid end time and list of bad clips intervals
     returns the good clips intevals by complementing the bad ones'
     """
-    assert bad_clips_intervals, "there must be at least one clip to remove"
-    good_clip_intervals = [(0, bad_clips_intervals[0][0])] if bad_clips_intervals[0][0] != 0 else []
-    for i in range(len(bad_clips_intervals) - 1):
-        good_clip_start = bad_clips_intervals[i][1]
-        good_clip_end = bad_clips_intervals[i + 1][0]
-        good_clip_intervals.append((good_clip_start, good_clip_end))        
-    if bad_clips_intervals[-1][1] != vid_end:
-        good_clip_intervals.append((bad_clips_intervals[-1][1], vid_end))
-    return good_clip_intervals
+    assert clips_intervals, "there must be at least one clip to remove"
+    complement_clips_intervals = [(0, clips_intervals[0][0])] if clips_intervals[0][0] != 0 else []
+    
+    for i in range(len(clips_intervals) - 1):
+        clip_start = clips_intervals[i][1]
+        clip_end = clips_intervals[i + 1][0]
+        assert clip_start <= clip_end, f"({clip_start} {clip_end}) clip start must be less than clip end"
+        complement_clips_intervals.append((clip_start, clip_end))        
+    if clips_intervals[-1][1] != end:
+        complement_clips_intervals.append((clips_intervals[-1][1], end))
+        
+    return complement_clips_intervals
     
 # Needs fixes to be used
 def get_audio_codec(file_path: str):
