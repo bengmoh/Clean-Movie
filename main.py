@@ -2,24 +2,27 @@ from moviepy.editor import VideoFileClip, concatenate_videoclips
 import re 
 import subprocess
 from tkinter import Tk, filedialog
+from safe import decode
 
 
 def main() -> None:
     root = Tk()
-    root.withdraw()
+    root.withdraw() # build the ui don't hide it
     input_file_path = filedialog.askopenfilename(initialdir=".", title="select the movie", filetypes=(("all files", "*.*"), ("mp4 files", "*.mp4")))
     vid = VideoFileClip(input_file_path)
 
-    
     bad_clips_input = input(
-        "Enter the list of clips you want to remove. \
-        \nMake sure the clips are ordered and in a correct format: \
-        \n-> Example of input: (0:40, 1:50) (1:30:00, 1:40:00) \
-        \n->"
+        "Enter the list of clips you want to remove, or the special code:\
+        \n -> "
         )
     
+    # Handling code vs normal input
+    if any(char.isalpha() for char in bad_clips_input):
+        bad_clips_input = decode(bad_clips_input)
+        
     bad_clips = get_clip_list(bad_clips_input)
     good_clips = cutout(bad_clips, vid)
+        
     new_video = concatenate_videoclips(good_clips)
     
     output_file_path = input_file_path[:len(input_file_path)-4] + " (CleanMovie)"  + input_file_path[len(input_file_path)-4:]
@@ -42,7 +45,7 @@ def get_clip_list(clip_str: str) -> list[tuple[int, int]]:
         column_count = time.count(":")
         if not column_count:
             # handle float input or not?
-            return int(float(time)) if time < "60" else ValueError("seconds must be 60 or less")
+            return int(float(time))
         if column_count == 1:
             time_parts = time.split(":")
             return int(time_parts[0]) * 60 + int(float(time_parts[1]))
