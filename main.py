@@ -23,7 +23,7 @@ def main() -> None:
         remove = False
         
     clip_intervals = get_clip_intervals(clip_input)
-    if bad: # complement to get the actual clips
+    if remove: # complement to get the actual clips
         clip_intervals = complement(clip_intervals, vid.end)
     
     # generate the clips to keep and concatenate them to write the clean video
