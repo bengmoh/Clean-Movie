@@ -11,28 +11,33 @@ def main() -> None:
     input_file_path = filedialog.askopenfilename(initialdir=".", title="select the movie", filetypes=(("all files", "*.*"), ("mp4 files", "*.mp4")))
     vid = VideoFileClip(input_file_path)
 
-    bad_clips_input = input(
-        "Enter the list of clips you want to remove, or the special code:\
+    bad = True 
+    clips_input = input(
+        "Enter the list of clips you want to remove:\
         \n -> "
         )
     
     # Handling code vs normal input
-    if any(char.isalpha() for char in bad_clips_input):
-        bad_clips_input = decode(bad_clips_input)
+    if any(char.isalpha() for char in clips_input):
+        clips_input = decode(clips_input)
+        bad = False
         
-    bad_clips_intervals = get_clip_list(bad_clips_input)
-    good_clips_intervals = complement(bad_clips_intervals, end=vid.end)
-    good_clips = merge(good_clips_intervals, vid)
-        
-    new_video = concatenate_videoclips(good_clips)
+    clips_intervals = get_clips_intervals(clips_input)
+    if bad: # complement to get the actual clips
+        clips_intervals = complement(clips_intervals, vid.end)
     
+    # generate the clips to keep and concatenate them to write the clean video
+    clips = get_clips(clips_intervals, vid)    
+    new_video = concatenate_videoclips(clips)
+    
+    # handle short file names
     output_file_path = input_file_path[:len(input_file_path)-4] + " (CleanMovie)"  + input_file_path[len(input_file_path)-4:]
     new_video.write_videofile(output_file_path, codec="libx264", audio_codec="aac")
     vid.close()    
     # if automatically_openp
     #   python subprocess that opens the vid
 
-def get_clip_list(clip_str: str) -> list[tuple[int, int]]:
+def get_clips_intervals(clip_str: str) -> list[tuple[int, int]]:
     """
     returns list of clips (start[int], end[int]) in seconds given a string
     of clips, each clip as (start, end).
@@ -40,7 +45,6 @@ def get_clip_list(clip_str: str) -> list[tuple[int, int]]:
     Example:
     "(0:50, 1:0) (1:20, 2:03)" -> [(50, 60), (80, 123)]
     """
-    
     def to_seconds(time: str) -> int:
         """converts time from string format to seconds (int)"""
         column_count = time.count(":")
@@ -60,53 +64,36 @@ def get_clip_list(clip_str: str) -> list[tuple[int, int]]:
     interval_list = re.findall(rf"\(({time_pattern}) ?,? ?({time_pattern})\)", clip_str)
     for interval in interval_list:
         start, end = to_seconds(interval[0]), to_seconds(interval[1])
-        # handle end < start or not?
+        assert start <= end, f"start {start} must be less than or equal to end {end}"
         clip_list.append((start, end))
     return clip_list
 
     
-def merge(clips_intervals: list[tuple[int, int]], vid):
+def get_clips(clips_intervals: list[tuple[int, int]], vid):
     """
-    takes list of bad clips intervals,
+    takes list of good clips intervals,
     returns the list of the good clips
     """
     clips = []
     for clip_interval in clips_intervals:
-        start, end = clip_interval
-        clips.append(vid.subclip(start, end))
+        clips.append(vid.subclip(*clip_interval))
     return clips
 
 
 def complement(clips_intervals: list[tuple[int, int]], end: int):
     """
-    takes vid end time and list of bad clips intervals
-    returns the good clips intevals by complementing the bad ones'
+    takes vid end time and list of clips' intervals
+    returns the complement clips intevals'
     """
     assert clips_intervals, "there must be at least one clip to remove"
-    complement_clips_intervals = [(0, clips_intervals[0][0])] if clips_intervals[0][0] != 0 else []
-    
+    comp_clip_intervals = [(0, clips_intervals[0][0])] if clips_intervals[0][0] != 0 else []
     for i in range(len(clips_intervals) - 1):
-        clip_start = clips_intervals[i][1]
-        clip_end = clips_intervals[i + 1][0]
-        assert clip_start <= clip_end, f"({clip_start} {clip_end}) clip start must be less than clip end"
-        complement_clips_intervals.append((clip_start, clip_end))        
+        comp_clip_start = clips_intervals[i][1]
+        comp_clip_end = clips_intervals[i + 1][0]
+        comp_clip_intervals.append((comp_clip_start, comp_clip_end))        
     if clips_intervals[-1][1] != end:
-        complement_clips_intervals.append((clips_intervals[-1][1], end))
-        
-    return complement_clips_intervals
-    
-# Needs fixes to be used
-def get_audio_codec(file_path: str):
-    result = subprocess.run(["ffprobe", "-v", "error", "-show_streams", file_path], capture_output=True, text=True)
-    original_audio_codec = re.search(r"codec_name=([^,]+)", result.stdout).group(1)
-
-    # Set the output audio codec to match the original
-    if original_audio_codec == "aac":
-        return "aac"
-    elif original_audio_codec == "mp3":
-        return "libmp3lame"  # or "mp3"
-    else:
-        return original_audio_codec  # Use the same codec
+        comp_clip_intervals.append((clips_intervals[-1][1], end))
+    return comp_clip_intervals
     
 if __name__ == "__main__":
     main()
