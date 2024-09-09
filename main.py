@@ -11,23 +11,23 @@ def main() -> None:
     input_file_path = filedialog.askopenfilename(initialdir=".", title="select the movie", filetypes=(("all files", "*.*"), ("mp4 files", "*.mp4")))
     vid = VideoFileClip(input_file_path)
 
-    bad = True 
-    clips_input = input(
+    remove = True 
+    clip_input = input(
         "Enter the list of clips you want to remove:\
         \n -> "
         )
     
-    # Handling code vs normal input
-    if any(char.isalpha() for char in clips_input):
-        clips_input = decode(clips_input)
-        bad = False
+    # Handling special code, only for clips to be kept
+    if any(char.isalpha() for char in clip_input):
+        clip_input = decode(clip_input)
+        remove = False
         
-    clips_intervals = get_clips_intervals(clips_input)
+    clip_intervals = get_clip_intervals(clip_input)
     if bad: # complement to get the actual clips
-        clips_intervals = complement(clips_intervals, vid.end)
+        clip_intervals = complement(clip_intervals, vid.end)
     
     # generate the clips to keep and concatenate them to write the clean video
-    clips = get_clips(clips_intervals, vid)    
+    clips = get_clips(clip_intervals, vid)    
     new_video = concatenate_videoclips(clips)
     
     # handle short file names
@@ -37,7 +37,7 @@ def main() -> None:
     # if automatically_openp
     #   python subprocess that opens the vid
 
-def get_clips_intervals(clip_str: str) -> list[tuple[int, int]]:
+def get_clip_intervals(clip_str: str) -> list[tuple[int, int]]:
     """
     returns list of clips (start[int], end[int]) in seconds given a string
     of clips, each clip as (start, end).
@@ -69,30 +69,33 @@ def get_clips_intervals(clip_str: str) -> list[tuple[int, int]]:
     return clip_list
 
     
-def get_clips(clips_intervals: list[tuple[int, int]], vid):
+def get_clips(clip_intervals: list[tuple[int, int]], vid):
     """
-    takes list of good clips intervals,
-    returns the list of the good clips
+    returns the list of clips given the clips' intervals
     """
     clips = []
-    for clip_interval in clips_intervals:
+    for clip_interval in clip_intervals:
         clips.append(vid.subclip(*clip_interval))
     return clips
 
 
-def complement(clips_intervals: list[tuple[int, int]], end: int):
+def complement(clip_intervals: list[tuple[int, int]], end: int):
     """
     takes vid end time and list of clips' intervals
-    returns the complement clips intevals'
+    returns the complement clips' intevals
     """
-    assert clips_intervals, "there must be at least one clip to remove"
-    comp_clip_intervals = [(0, clips_intervals[0][0])] if clips_intervals[0][0] != 0 else []
-    for i in range(len(clips_intervals) - 1):
-        comp_clip_start = clips_intervals[i][1]
-        comp_clip_end = clips_intervals[i + 1][0]
-        comp_clip_intervals.append((comp_clip_start, comp_clip_end))        
-    if clips_intervals[-1][1] != end:
-        comp_clip_intervals.append((clips_intervals[-1][1], end))
+    assert clip_intervals, "there must be at least one clip to remove"
+    
+    comp_clip_intervals = [(0, clip_intervals[0][0])] if clip_intervals[0][0] != 0 else []
+    
+    for i in range(len(clip_intervals) - 1):
+        comp_clip_start = clip_intervals[i][1]
+        comp_clip_end = clip_intervals[i + 1][0]
+        comp_clip_intervals.append((comp_clip_start, comp_clip_end))    
+        
+    if clip_intervals[-1][1] != end:
+        comp_clip_intervals.append((clip_intervals[-1][1], end))
+        
     return comp_clip_intervals
     
 if __name__ == "__main__":
