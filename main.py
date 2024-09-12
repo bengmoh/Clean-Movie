@@ -7,7 +7,7 @@ from safe import decode
 
 def main() -> None:
     root = Tk()
-    root.withdraw() # build the ui don't hide it
+    root.withdraw()
     input_file_path = filedialog.askopenfilename(initialdir=".", title="select the movie", filetypes=(("all files", "*.*"), ("mp4 files", "*.mp4")))
     vid = VideoFileClip(input_file_path)
 
@@ -30,12 +30,9 @@ def main() -> None:
     clips = get_clips(clip_intervals, vid)    
     new_video = concatenate_videoclips(clips)
     
-    # handle short file names
     output_file_path = input_file_path[:len(input_file_path)-4] + " (CleanMovie)"  + input_file_path[len(input_file_path)-4:]
     new_video.write_videofile(output_file_path, codec="libx264", audio_codec="aac")
     vid.close()    
-    # if automatically_openp
-    #   python subprocess that opens the vid
 
 def get_clip_intervals(clip_str: str) -> list[tuple[int, int]]:
     """
@@ -49,7 +46,6 @@ def get_clip_intervals(clip_str: str) -> list[tuple[int, int]]:
         """converts time from string format to seconds (int)"""
         column_count = time.count(":")
         if not column_count:
-            # handle float input or not?
             return int(float(time))
         if column_count == 1:
             time_parts = time.split(":")
