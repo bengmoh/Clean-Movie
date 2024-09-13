@@ -2,7 +2,7 @@ from moviepy.editor import VideoFileClip, concatenate_videoclips
 import re 
 import subprocess
 from tkinter import Tk, filedialog
-from safe import decode
+#from safe import decode # a feature to be added soon
 
 
 def main() -> None:
@@ -17,11 +17,11 @@ def main() -> None:
         \n -> "
         )
     
-    # Handling special code, only for clips to be kept
-    if any(char.isalpha() for char in clip_input):
-        clip_input = decode(clip_input)
-        remove = False
-        
+    # feature to be added soon
+    #if any(char.isalpha() for char in clip_input):
+    #    clip_input = decode(clip_input)
+    #    remove = False
+    
     clip_intervals = get_clip_intervals(clip_input)
     if remove: # complement to get the actual clips
         clip_intervals = complement(clip_intervals, vid.end)
