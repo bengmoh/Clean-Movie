@@ -31,7 +31,7 @@ def app(call=0) -> None:
     choices_label = Label(master=root)
     cut_choice = Radiobutton(master=choices_label, text="cut", variable=to_cut, value=True)
     keep_choice = Radiobutton(master=choices_label, text="keep", variable=to_cut, value=False)
-    file_button = Button(master=root, text="Select Video", command=select_video_file)
+    file_button = Button(master=root, text="Select Video", command=lambda: select_video_file())
     
     clips_label.pack()
     clips_entry.pack()
